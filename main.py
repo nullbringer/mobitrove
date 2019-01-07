@@ -1,4 +1,5 @@
-import urllib3
+
+import requests
 from bs4 import BeautifulSoup
 from ebooklib import epub
 
@@ -6,10 +7,9 @@ BASE_URL = 'http://pnovels.net'
 
 TARGET_PATH = '/241331-a-shadow-in-summer.html'
 
-http = urllib3.PoolManager()
-page_content = http.request('GET',BASE_URL + TARGET_PATH)
+page_content = requests.get(BASE_URL + TARGET_PATH)
 
-soup = BeautifulSoup(page_content.data, 'html.parser')
+soup = BeautifulSoup(page_content.text, 'html.parser')
 
 
 book_name = soup.select('div.detail-top > h2')[0].text
@@ -31,6 +31,27 @@ book.set_language('en')
 
 book.add_author(author_name)
 
+# get cover image
+
+imglink = soup.findAll('img')[0]['src']
+
+
+
+if(imglink.startswith('..')):
+	imglink = imglink[2:]
+
+print(BASE_URL +  imglink)
+ 
+ 
+# download the url contents in binary format
+r = requests.get(BASE_URL +  imglink)
+ 
+# open method to open a file on your system and write the contents
+with open("cover_img.png", "wb") as code:
+    code.write(r.content)
+
+book.set_cover("image.jpg", open('cover_img.png', 'rb').read())
+
 # Navigagte pages
 
 epub_spine = ['nav']
@@ -39,8 +60,8 @@ table_of_content = ()
 while True:
 
 	print('...fetching....' + link)
-	page_content = http.request('GET',BASE_URL + link)
-	soup = BeautifulSoup(page_content.data, 'html.parser')
+	page_content = requests.get(BASE_URL + link)
+	soup = BeautifulSoup(page_content.text, 'html.parser')
 
 	story_page_content = soup.select('div.chapter-content-p')[0].contents
 
@@ -100,7 +121,7 @@ book.add_item(nav_css)
 book.spine = epub_spine
 
 # write to the file
-epub.write_epub('test.epub', book, {})
+epub.write_epub(book_name + '.epub', book, {})
 
 
 
