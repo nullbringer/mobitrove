@@ -42,8 +42,6 @@ book.add_author(author_name)
 
 imglink = soup.findAll('img')[0]['src']
 
-
-
 if(imglink.startswith('..')):
 	imglink = imglink[2:]
 
@@ -109,7 +107,6 @@ while True:
 
 	if should_continue == False:
 		break
-	# break
 
 
 
@@ -133,9 +130,8 @@ book.spine = epub_spine
 epub.write_epub(book_name_dash + '.epub', book, {})
 
 print(book_name_dash)
-# ./kindlegen ../../A\ Shadow\ In\ Summer.epub
 
-# fire kindlegen
+# fire kindlegen to generate .mobi
 
 subprocess.call('lib/KindleGen/kindlegen ' + book_name_dash+'.epub -c1', shell = True)
 
