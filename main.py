@@ -2,10 +2,16 @@
 import requests
 from bs4 import BeautifulSoup
 from ebooklib import epub
+import os
+import subprocess
+from email_utils import EmailConnection
+import config
 
-BASE_URL = 'http://pnovels.net'
+TEMP_COVER_IMAGE = 'cover_img.png'
 
-TARGET_PATH = '/241331-a-shadow-in-summer.html'
+BASE_URL = config.configuration['BASE_URL']
+
+TARGET_PATH = config.configuration['TARGET_PATH']
 
 page_content = requests.get(BASE_URL + TARGET_PATH)
 
@@ -13,6 +19,7 @@ soup = BeautifulSoup(page_content.text, 'html.parser')
 
 
 book_name = soup.select('div.detail-top > h2')[0].text
+book_name_dash = book_name.replace(' ', '-').lower()
 author_name  = soup.select('div.detail-top > p')[0].text.split(':')[1].strip()
 
 
@@ -47,10 +54,12 @@ print(BASE_URL +  imglink)
 r = requests.get(BASE_URL +  imglink)
  
 # open method to open a file on your system and write the contents
-with open("cover_img.png", "wb") as code:
+with open(TEMP_COVER_IMAGE, "wb") as code:
     code.write(r.content)
 
 book.set_cover("image.jpg", open('cover_img.png', 'rb').read())
+
+os.remove(TEMP_COVER_IMAGE)
 
 # Navigagte pages
 
@@ -66,7 +75,7 @@ while True:
 	story_page_content = soup.select('div.chapter-content-p')[0].contents
 
 	chapter_name = soup.select('h3.title')[0].text
-	chapter_name_dash = ''.join(e for e in chapter_name if e.isalnum() or e == '-')
+	chapter_name_dash = chapter_name.replace(' ', '-').lower()
 
 
 	nav_buttons = soup.select('div.chap-select-dropdown > a')
@@ -121,7 +130,29 @@ book.add_item(nav_css)
 book.spine = epub_spine
 
 # write to the file
-epub.write_epub(book_name + '.epub', book, {})
+epub.write_epub(book_name_dash + '.epub', book, {})
+
+print(book_name_dash)
+# ./kindlegen ../../A\ Shadow\ In\ Summer.epub
+
+# fire kindlegen
+
+subprocess.call('lib/KindleGen/kindlegen ' + book_name_dash+'.epub -c1', shell = True)
+
+
+# send the file to kindle
+
+if( config.configuration['SEND_TO_KINDLE']== 'Y'):
+
+	mailer = EmailConnection(server = config.configuration['SMTP_SERVER'], username = config.configuration['SMTP_USER'], password= config.configuration['SMTP_PASSWORD'])
+	mailer.send(send_from = config.configuration['SEND_FROM'], send_to = config.configuration['SEND_TO'], 
+		subject= book_name, text ='attaching the content', files = [book_name_dash + '.mobi'])
+	mailer.close()
+
+
+	print("mobi file sent to your kindle!!!")
+
+
 
 
 
